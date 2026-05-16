@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  inspection-api:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/Dockerfile
+    image: pouch-cell-inspection:latest
+    container_name: pouch_cell_inspection
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../../models:/app/models
+      - ../../data:/app/data
+      - ../../runs:/app/runs
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # 可选：Web UI 服务
+  # inspection-ui:
+  #   image: pouch-cell-ui:latest
+  #   container_name: pouch_cell_ui
+  #   ports:
+  #     - "3000:80"
+  #   depends_on:
+  #     - inspection-api
+  #   restart: unless-stopped
+
+networks:
+  default:
+    name: pouch-cell-network
